@@ -8,19 +8,19 @@ SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0;
 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
 
 -- -----------------------------------------------------
--- Schema mydb
+-- Schema fundamental_analyzer
 -- -----------------------------------------------------
 
 -- -----------------------------------------------------
--- Schema mydb
+-- Schema fundamental_analyzer
 -- -----------------------------------------------------
-CREATE SCHEMA IF NOT EXISTS `mydb` DEFAULT CHARACTER SET utf8 ;
-USE `mydb` ;
+CREATE SCHEMA IF NOT EXISTS `fundamental_analyzer` DEFAULT CHARACTER SET utf8 ;
+USE `fundamental_analyzer` ;
 
 -- -----------------------------------------------------
--- Table `mydb`.`company`
+-- Table `fundamental_analyzer`.`company`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `mydb`.`company` (
+CREATE TABLE IF NOT EXISTS `fundamental_analyzer`.`company` (
   `ticker` VARCHAR(10) NOT NULL,
   `name` VARCHAR(100) NULL,
   `exchange` VARCHAR(50) NULL,
@@ -29,9 +29,9 @@ ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
--- Table `mydb`.`score_cache`
+-- Table `fundamental_analyzer`.`score_cache`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `mydb`.`score_cache` (
+CREATE TABLE IF NOT EXISTS `fundamental_analyzer`.`score_cache` (
   `ticker` VARCHAR(10) NOT NULL,
   `pe_ratio` DECIMAL(10,2) NULL,
   `debt_to_equity` DECIMAL(10,2) NULL,
@@ -45,16 +45,16 @@ CREATE TABLE IF NOT EXISTS `mydb`.`score_cache` (
   INDEX `fk_score_cache_company1_idx` (`company_ticker` ASC) VISIBLE,
   CONSTRAINT `fk_score_cache_company1`
     FOREIGN KEY (`company_ticker`)
-    REFERENCES `mydb`.`company` (`ticker`)
+    REFERENCES `fundamental_analyzer`.`company` (`ticker`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
--- Table `mydb`.`score_history`
+-- Table `fundamental_analyzer`.`score_history`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `mydb`.`score_history` (
+CREATE TABLE IF NOT EXISTS `fundamental_analyzer`.`score_history` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `calculated_date` DATETIME NULL,
   `fundamental_score` DECIMAL(5,2) NULL,
@@ -68,7 +68,7 @@ CREATE TABLE IF NOT EXISTS `mydb`.`score_history` (
   INDEX `fk_score_history_company1_idx` (`company_ticker` ASC) VISIBLE,
   CONSTRAINT `fk_score_history_company1`
     FOREIGN KEY (`company_ticker`)
-    REFERENCES `mydb`.`company` (`ticker`)
+    REFERENCES `fundamental_analyzer`.`company` (`ticker`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
