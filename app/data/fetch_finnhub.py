@@ -16,10 +16,10 @@ class Finnhub(MetricFetcher):
                 ticker (str): Stock ticker symbol, e.g. "AAPL"
 
             :return:
-            a dict of lists of tuples
+                a dict of lists of tuples
 
-            exemple:
-            fetch_metric("APPL")
+            example:
+                fetch_metric("APPL")
         '''
 
         if not self.api_key:
