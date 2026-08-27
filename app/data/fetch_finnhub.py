@@ -1,15 +1,13 @@
 import requests
-from app.data.fundamental_metrique_fetcher import MetriqueFetcher, data_metrique_error
+from app.data.fundamental_metrique_fetcher import MetricFetcher, data_metric_error
 from app.config import FINNHUB_API_KEY
 from datetime import datetime, timedelta
 
-
-
-class Finnhub(MetriqueFetcher):
+class Finnhub(MetricFetcher):
     def __init__(self, api_key=None, base_url="https://finnhub.io/api/v1/stock/metric"):
         self.api_key = api_key or FINNHUB_API_KEY
         self.base_url = base_url
-    def fetch_metrique(self,ticker):
+    def fetch_metric(self, ticker):
         '''
             fetch metrics data for a company
 
@@ -18,7 +16,7 @@ class Finnhub(MetriqueFetcher):
         '''
 
         if not self.api_key:
-            raise data_metrique_error("FINNHUB_API_KEY is missing")
+            raise data_metric_error("FINNHUB_API_KEY is missing")
         params = {
             "symbol": ticker,
             "metric": "all",
@@ -30,37 +28,34 @@ class Finnhub(MetriqueFetcher):
 
         response = requests.get(self.base_url, params=params)
         if response.status_code != 200:
-            raise data_metrique_error(f"Erreur API, status: {response.status_code}")
+            raise data_metric_error(f"Erreur API, status: {response.status_code}")
 
         data = response.json()
 
         try:
             quarterly = data["series"]["quarterly"]
         except KeyError:
-            raise data_metrique_error(f"Format de réponse inattendu pour {ticker}")
+            raise data_metric_error(f"Format de réponse inattendu pour {ticker}")
         result={}
-        metriques = {"netDebtToTotalEquity","netMargin","peTTM","salesPerShare"}
+        metrics = {"netDebtToTotalEquity","netMargin","peTTM","salesPerShare"}
 
-        for metrique in metriques:
-
+        for metric in metrics:
             try:
-                serie = quarterly[metrique]
+                serie = quarterly[metric]
             except KeyError:
                 continue
 
-            result[metrique] = []
+            result[metric] = []
 
             for point in serie:
-
                 date = datetime.strptime(point["period"], "%Y-%m-%d")
                 value = point["v"]
 
-                if date >= six_years and metrique=="salesPerShare":
-                    result[metrique].append((date,value))
+                if date >= six_years and metric=="salesPerShare":
+                    result[metric].append((date,value))
 
                 elif date >= five_years:
-
-                    result[metrique].append((date, value))
+                    result[metric].append((date, value))
 
         return result
 

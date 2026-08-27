@@ -1,10 +1,10 @@
 from abc import ABC, abstractmethod
 
-class MetriqueFetcher(ABC):
+class MetricFetcher(ABC):
     @abstractmethod
-    def fetch_metrique(self, ticker):
+    def fetch_metric(self, ticker):
         """
-        Fetch historical metrique of a company
+        Fetch historical metric of a company
 
         Args:
             ticker (str): Stock ticker symbol, e.g. "AAPL"
@@ -17,5 +17,5 @@ class MetriqueFetcher(ABC):
         """
         pass
 
-class data_metrique_error(Exception):
+class data_metric_error(Exception):
     pass
