@@ -9,10 +9,17 @@ class Finnhub(MetricFetcher):
         self.base_url = base_url
     def fetch_metric(self, ticker):
         '''
-            fetch metrics data for a company
+            fetch metrics(the net debt total equity, the net margin, the peTTM and sales per share)
+            for a company
+
+            args:
+                ticker (str): Stock ticker symbol, e.g. "AAPL"
 
             :return:
             a dict of lists of tuples
+
+            exemple:
+            fetch_metric("APPL")
         '''
 
         if not self.api_key:
