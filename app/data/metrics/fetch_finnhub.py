@@ -1,5 +1,5 @@
 import requests
-from app.data.fundamental_metrique_fetcher import MetricFetcher, data_metric_error
+from app.data.fundamental_metrics_fetcher import MetricFetcher, data_metric_error
 from app.config import FINNHUB_API_KEY
 from datetime import datetime, timedelta
 
