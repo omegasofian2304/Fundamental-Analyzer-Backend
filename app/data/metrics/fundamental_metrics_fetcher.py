@@ -17,5 +17,5 @@ class MetricFetcher(ABC):
         """
         pass
 
-class data_metric_error(Exception):
+class MetricFetchError(Exception):
     pass
