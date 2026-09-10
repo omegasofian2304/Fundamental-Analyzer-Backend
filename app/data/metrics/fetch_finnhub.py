@@ -2,6 +2,7 @@ import requests
 from app.data.metrics.fundamental_metrics_fetcher import MetricFetcher, MetricFetchError
 from app.config import FINNHUB_API_KEY
 from datetime import datetime, timedelta
+import time
 
 class Finnhub(MetricFetcher):
     def __init__(self, api_key=None, base_url="https://finnhub.io/api/v1/stock/metric"):
@@ -68,3 +69,26 @@ class Finnhub(MetricFetcher):
 
         return result
 
+
+    def fetch_many(self, tickers, limit=None):
+        # limit lets you test on a small subset during dev instead of
+        # waiting 9 min for all 500 tickers every time.
+        if limit:
+            tickers = tickers[:limit]
+
+        sp500_metrics = []
+
+        # enumerate give the position and the ticker
+        for i, ticker in enumerate(tickers):
+            try:
+                sp500_metrics.append(self.fetch_metric(ticker))
+            except MetricFetchError as exc:
+                print(f"Skipping {ticker}: {exc}")
+                continue
+
+            # +1 because enumerate starts at 0 this triggers after every
+            # 55th call, staying safely under Finnhub's 60 calls/minute limit
+            if (i + 1) % 55 == 0:
+                time.sleep(60)
+
+        return sp500_metrics
