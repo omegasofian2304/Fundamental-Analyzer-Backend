@@ -83,3 +83,14 @@ def compute_final_score(ticker, metric_client, bounds):
     score = sum(individual_score_with_weight)
     return score
 
+
+def compute_label(score):
+    """
+    Convert a composite score (0-100) into a valuation label.
+    """
+    if score >= 70:
+        return "sous-évaluée"
+    elif score <= 30:
+        return "sur-évaluée"
+    else:
+        return "correctement valorisée"
