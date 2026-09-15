@@ -45,7 +45,7 @@ class Finnhub(MetricFetcher):
         try:
             quarterly = data["series"]["quarterly"]
         except KeyError:
-            raise MetricFetchError(f"Format de réponse inattendu pour {ticker}")
+            raise MetricFetchError(f"Unexpected response format for {ticker}")
         result={}
         metrics = {"netDebtToTotalEquity","netMargin","peTTM","salesPerShare"}
 
