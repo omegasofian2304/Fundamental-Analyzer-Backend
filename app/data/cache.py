@@ -1,7 +1,5 @@
 import json
-from datetime import datetime, timedelta
-
-from app.config import CACHE_TTL_HOURS
+from datetime import datetime
 from app.data.metrics.fetch_finnhub import Finnhub
 from app.data.metrics.fundamental_metrics_fetcher import MetricFetcher
 from app.data.redis_client import get_redis
@@ -87,20 +85,6 @@ def get_bounds_cached(metric_names: list[str]) -> dict | None:
         bounds[metric_name] = json.loads(cached)
 
     return bounds
-
-
-
-def is_score_cache_fresh(
-    data_updated_at: datetime | None,
-    ttl_hours: int = CACHE_TTL_HOURS,
-    now: datetime | None = None,
-) -> bool:
-
-    if data_updated_at is None:
-        return False
-
-    now = now or datetime.now()
-    return now - data_updated_at < timedelta(hours=ttl_hours)
 
 
 def are_bounds_fresh(metric_names: list[str]) -> bool:
