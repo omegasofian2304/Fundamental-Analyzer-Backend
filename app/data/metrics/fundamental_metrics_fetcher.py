@@ -34,24 +34,25 @@ class MetricFetcher(ABC):
                 full universe.
 
         Returns:
-            list[dict]: One fetch_metric() result per ticker that was
-            fetched successfully.
+            list[tuple[str, dict]]: (ticker, metrics) pairs for each
+            ticker that was fetched successfully.
         """
         # limit lets you test on a small subset
         if limit:
             tickers = tickers[:limit]
 
-        sp500_metrics = []
+        results = []
 
         # enumerate give the position and the ticker
         for i, ticker in enumerate(tickers):
             try:
-                sp500_metrics.append(self.fetch_metric(ticker))
+                results.append((ticker, self.fetch_metric(ticker)))
             except MetricFetchError as exc:
                 print(f"Skipping {ticker}: {exc}")
                 continue
 
-        return sp500_metrics
+        return results
+
 
 class MetricFetchError(Exception):
     pass
