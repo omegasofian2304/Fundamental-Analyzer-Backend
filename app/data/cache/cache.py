@@ -6,6 +6,7 @@ from app.data.cache.redis_client import get_redis
 TICKERS_TTL_SECONDS = 60 * 60 * 24 * 30 * 6  # 6 months
 METRICS_TTL_SECONDS = 60 * 60 * 24 * 100  # 100 days (quarterly filings + margin)
 BOUNDS_TTL_SECONDS = METRICS_TTL_SECONDS  # same lifetime as the metrics they come from
+PRICE_TTL_SECONDS = 60 * 60 * 24  # 24h
 
 
 def get_tickers_cached(ticker_client) -> list[str]:
@@ -115,3 +116,22 @@ def are_bounds_fresh(metric_names: list[str]) -> bool:
     Check whether all percentile bounds are still present in Redis
     """
     return get_bounds_cached(metric_names) is not None
+
+
+def cache_price_history(ticker: str, prices: list) -> None:
+    r = get_redis()
+    key = f"price_history:{ticker}"
+    r.setex(key, PRICE_TTL_SECONDS, json.dumps(prices))
+
+
+def get_price_history_cached(price_fetcher, ticker: str) -> list:
+    r = get_redis()
+    key = f"price_history:{ticker}"
+
+    cached = r.get(key)
+    if cached is not None:
+        return json.loads(cached)
+
+    prices = price_fetcher.get_price_history(ticker)
+    cache_price_history(ticker, prices)
+    return prices
