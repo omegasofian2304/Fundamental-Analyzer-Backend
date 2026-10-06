@@ -69,19 +69,18 @@ class Finnhub(MetricFetcher):
 
         return result
 
-
     def fetch_many(self, tickers, limit=None):
         # limit lets you test on a small subset during dev instead of
         # waiting 9 min for all 500 tickers every time.
         if limit:
             tickers = tickers[:limit]
 
-        sp500_metrics = []
+        results = []
 
         # enumerate give the position and the ticker
         for i, ticker in enumerate(tickers):
             try:
-                sp500_metrics.append(self.fetch_metric(ticker))
+                results.append((ticker, self.fetch_metric(ticker)))
             except MetricFetchError as exc:
                 print(f"Skipping {ticker}: {exc}")
                 continue
@@ -91,4 +90,4 @@ class Finnhub(MetricFetcher):
             if (i + 1) % 55 == 0:
                 time.sleep(60)
 
-        return sp500_metrics
+        return results

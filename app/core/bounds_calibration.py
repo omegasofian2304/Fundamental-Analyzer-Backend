@@ -92,7 +92,10 @@ def compute_all_bounds(extracted_metrics, low_pct=5, high_pct=95):
 
 def compute_bounds(ticker_source, metric_client, limit=None):
     tickers = ticker_source.get_tickers()
-    sp500_metrics = metric_client.fetch_many(tickers, limit)
+    results = metric_client.fetch_many(tickers, limit)
+
+    # _ discards the ticker, we only need the metrics here
+    sp500_metrics = [metrics for _, metrics in results]
 
     extracted = extract_latest_values(sp500_metrics)
     bounds = compute_all_bounds(extracted)

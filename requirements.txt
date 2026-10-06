@@ -5,5 +5,8 @@ pymysql
 python-dotenv
 requests
 PyMySQL
+redis
 pandas
 pydantic
+numpy
+sqlalchemy
