@@ -1,7 +1,10 @@
+from datetime import date
 from app.core.bounds_calibration import compute_growth, get_latest_value
-from app.schemas.fundamental_metrics import FundamentalMetrics
 from app.core.metric_constants import (RAW_METRIC_NAMES, GROWTH_METRIC_NAME, SCORE_METRIC_NAMES, INVERTED_METRICS,
 METRIC_WEIGHTS)
+from app.data.cache.cache import get_bounds_cached, CachedMetricFetcher
+from app.data.metrics.fetch_finnhub import Finnhub
+from app.schemas.fundamental_metrics import FundamentalMetrics
 
 def build_fundamental_metrics(metrics_of_a_ticker: dict) -> FundamentalMetrics:
     return FundamentalMetrics(**metrics_of_a_ticker)
@@ -94,3 +97,17 @@ def compute_label(score):
         return "sur-évaluée"
     else:
         return "correctement valorisée"
+
+
+def get_score(ticker: str, metric_client) -> dict:
+    """Orchestrate score computation for a single ticker."""
+    bounds = get_bounds_cached(SCORE_METRIC_NAMES)
+    if bounds is None:
+        raise ValueError("Bounds not in cache. Run refresh script first.")
+    score = compute_final_score(ticker, metric_client, bounds)
+    return {
+        "ticker": ticker,
+        "score": round(score, 2),
+        "label": compute_label(score),
+        "date": date.today()
+    }
