@@ -26,3 +26,22 @@ def refresh_sp500_cache(metric_fetcher, ticker_client, limit: int | None = None)
     set_bounds_cached(bounds)
 
     return bounds
+
+# Generated with Claude AI, entry point for running the refresh script
+# run with `python -m app.scripts.refresh_sp500_cache --limit 10`
+if __name__ == "__main__":
+    import argparse  # built-in module for parsing command-line arguments
+    from app.data.metrics.fetch_finnhub import Finnhub
+    from app.data.tickers.sp500_github_client import SP500Github
+
+    # Create a parser that reads --limit from the command line
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--limit", type=int, default=None,
+                        help="Number of tickers to process (for testing)")
+
+    # Parse the arguments into an object (args.limit = 10 if you passed --limit 10)
+    args = parser.parse_args()
+
+    # Run the refresh with real implementations of the abstractions
+    bounds = refresh_sp500_cache(Finnhub(), SP500Github(), limit=args.limit)
+    print(f"Bounds recalculated for {len(bounds)} metrics.")

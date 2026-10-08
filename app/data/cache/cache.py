@@ -132,6 +132,6 @@ def get_price_history_cached(price_fetcher, ticker: str) -> list:
     if cached is not None:
         return json.loads(cached)
 
-    prices = price_fetcher.get_price_history(ticker)
+    prices = price_fetcher.fetch_price(ticker)
     cache_price_history(ticker, prices)
     return prices
