@@ -4,7 +4,6 @@ from app.core.metric_constants import (RAW_METRIC_NAMES, GROWTH_METRIC_NAME, SCO
 METRIC_WEIGHTS)
 from app.data.cache.cache import get_bounds_cached, CachedMetricFetcher
 from app.data.metrics.fetch_finnhub import Finnhub
-from app.data.score_history.history import save_score_history
 from app.schemas.fundamental_metrics import FundamentalMetrics
 
 def build_fundamental_metrics(metrics_of_a_ticker: dict) -> FundamentalMetrics:
@@ -106,15 +105,9 @@ def get_score(ticker: str, metric_client) -> dict:
     if bounds is None:
         raise ValueError("Bounds not in cache. Run refresh script first.")
     score = compute_final_score(ticker, metric_client, bounds)
-    rounded_score = round(score, 2)
-    label = compute_label(score)
-    today = date.today()
-
-    save_score_history(ticker, rounded_score, label, today)
-
     return {
         "ticker": ticker,
-        "score": rounded_score,
-        "label": label,
-        "date": today
+        "score": round(score, 2),
+        "label": compute_label(score),
+        "date": date.today()
     }
