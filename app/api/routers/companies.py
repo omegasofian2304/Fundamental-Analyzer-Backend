@@ -1,5 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.exc import SQLAlchemyError
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.data.models.company import read_all_companies
@@ -11,9 +10,4 @@ router = APIRouter()
 
 @router.get("/companies", response_model=list[Company])
 def list_companies(db: Session = Depends(get_db)):
-    try:
-        return read_all_companies(db)
-    except SQLAlchemyError:
-
-        #if there is an error with SQLAlchemy raise an exception code with status 503
-        raise HTTPException(status_code=503, detail="Database unavailable")
+    return read_all_companies(db)
