@@ -1,0 +1,93 @@
+import requests
+from app.data.metrics.fundamental_metrics_fetcher import MetricFetcher, MetricFetchError
+from app.config import FINNHUB_API_KEY
+from datetime import datetime, timedelta
+import time
+
+class Finnhub(MetricFetcher):
+    def __init__(self, api_key=None, base_url="https://finnhub.io/api/v1/stock/metric"):
+        self.api_key = api_key or FINNHUB_API_KEY
+        self.base_url = base_url
+    def fetch_metric(self, ticker):
+        """
+            fetch metrics(the net debt total equity, the net margin, the peTTM and sales per share)
+            for a company
+
+            args:
+                ticker (str): Stock ticker symbol, e.g. "AAPL"
+
+            :return:
+                a dict of lists of tuples
+
+            example:
+                fetch_metric("APPL")
+        """
+
+        if not self.api_key:
+            raise MetricFetchError("FINNHUB_API_KEY is missing")
+        params = {
+            "symbol": ticker,
+            "metric": "all",
+            "token": self.api_key
+        }
+
+        five_years = datetime.now() - timedelta(days=5 * 365)
+        six_years = datetime.now() - timedelta(days=6 * 365)
+
+        try:
+            response = requests.get(self.base_url, params=params, timeout=10)
+            response.raise_for_status()
+        except requests.exceptions.RequestException as exc:
+            raise MetricFetchError(f"network error {exc}")
+
+        data = response.json()
+
+        try:
+            quarterly = data["series"]["quarterly"]
+        except KeyError:
+            raise MetricFetchError(f"Unexpected response format for {ticker}")
+        result={}
+        metrics = {"netDebtToTotalEquity","netMargin","peTTM","salesPerShare"}
+
+        for metric in metrics:
+            try:
+                serie = quarterly[metric]
+            except KeyError:
+                continue
+
+            result[metric] = []
+
+            for point in serie:
+                date = datetime.strptime(point["period"], "%Y-%m-%d")
+                value = point["v"]
+
+                if date >= six_years and metric=="salesPerShare":
+                    result[metric].append((date,value))
+
+                elif date >= five_years:
+                    result[metric].append((date, value))
+
+        return result
+
+    def fetch_many(self, tickers, limit=None):
+        # limit lets you test on a small subset during dev instead of
+        # waiting 9 min for all 500 tickers every time.
+        if limit:
+            tickers = tickers[:limit]
+
+        results = []
+
+        # enumerate give the position and the ticker
+        for i, ticker in enumerate(tickers):
+            try:
+                results.append((ticker, self.fetch_metric(ticker)))
+            except MetricFetchError as exc:
+                print(f"Skipping {ticker}: {exc}")
+                continue
+
+            # +1 because enumerate starts at 0 this triggers after every
+            # 55th call, staying safely under Finnhub's 60 calls/minute limit
+            if (i + 1) % 55 == 0:
+                time.sleep(60)
+
+        return results
