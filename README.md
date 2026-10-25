@@ -1,6 +1,6 @@
 # Fundamental Analyzer - Backend
 
-Backend service for **Fundamental Analyzer**, a school project that evaluates the fundamental health of publicly listed companies with a composite score (0–100) and compares its evolution against the real stock price over time.
+Backend service for **Fundamental Analyzer**, a school project that evaluates the fundamental health of publicly listed companies with a composite score (0-100) and compares its evolution against the real stock price over time.
 
 ## Overview
 
@@ -15,14 +15,15 @@ The application fetches fundamental data (P/E ratio, debt-to-equity, revenue gro
 | Growth        | 20%    |
 | Margin        | 20%    |
 
-Resulting label: **Undervalued** (>70) / **Fairly valued** (40–70) / **Overvalued** (<40)
+Resulting label: **sous-évaluée** (>=70) / **correctement valorisée** (30-70) / **sur-évaluée** (<=30)
 
 ## Tech stack
 
 - **Language / Framework:** Python + FastAPI
-- **Database:** MySQL (stores every computed score with its date and price, used for history and as a base for an optional ML extension)
+- **Database:** MySQL (stores every computed score with its date and label for historical tracking)
+- **Cache:** Redis (caches S&P 500 tickers, fundamental metrics, percentile bounds and price history)
 - **External APIs:**
-  - [Finnhub](https://finnhub.io) - fundamental data (`stock/metric`, annual history via `series.annual`)
+  - [Finnhub](https://finnhub.io) - fundamental data (`stock/metric`, quarterly history via `series.quarterly`)
   - [Twelve Data](https://twelvedata.com) - historical stock price (`time_series`)
 
 ## Architecture: layered monolith
@@ -33,7 +34,7 @@ The backend follows a **layered (monolithic) architecture** rather than microser
 Request
    │
    ▼
-┌─────────────┐   HTTP routing, request/response models
+┌─────────────┐   HTTP routing, request/response models, error handling
 │   api/      │
 └─────┬───────┘
       ▼
@@ -41,14 +42,14 @@ Request
 │   core/     │
 └─────┬───────┘
       ▼
-┌─────────────┐   External API clients & persistence (DB access)
+┌─────────────┐   External API clients, cache & persistence (DB access)
 │   data/     │
 └─────────────┘
 ```
 
-- **`api/`** - Presentation layer. Exposes the HTTP endpoints (FastAPI routers), validates incoming requests, and shapes the responses. It has no business logic of its own; it delegates to `core/`.
+- **`api/`** - Presentation layer. Exposes the HTTP endpoints (FastAPI routers), validates incoming requests, shapes the responses, and centralizes error handling. It has no business logic of its own; it delegates to `core/`.
 - **`core/`** - Domain / business logic layer. Contains the actual score computation (valuation, debt, growth, margin weighting) and orchestrates calls to the data layer. This is also where a future ML module would live, without needing changes to `api/` or `data/`.
-- **`data/`** - Data access layer. Contains the clients that talk to external APIs (Finnhub, Twelve Data) and the database access code (MySQL). It is the only layer allowed to perform I/O with the outside world.
+- **`data/`** - Data access layer. Contains the clients that talk to external APIs (Finnhub, Twelve Data), the Redis cache logic, and the database access code (MySQL). It is the only layer allowed to perform I/O with the outside world.
 
 This separation means each layer can be modified or replaced independently, for example swapping Twelve Data for another price provider only requires changes inside `data/`.
 
@@ -58,30 +59,61 @@ This separation means each layer can be modified or replaced independently, for 
 Fundamental-Analyzer-Backend/
 ├── app/
 │   ├── api/
-│   │   ├── routers/          # FastAPI route definitions (endpoints)
+│   │   ├── routers/              # FastAPI route definitions (endpoints)
+│   │   ├── error_handlers.py     # Centralized exception handlers
 │   │   └── __init__.py
 │   ├── core/
-│   │   └── __init__.py       # Business logic: score calculation
-│   ├── data/
-│   │   ├── get_price_client.py  # Twelve Data client (historical prices)
+│   │   ├── score_calculator.py   # Score computation and orchestration
+│   │   ├── bounds_calibration.py # Percentile bounds calculation
+│   │   ├── metric_constants.py   # Metric names, weights, constants
+│   │   ├── score_history.py      # Score history orchestration
+│   │   ├── company.py            # Company orchestration
+│   │   ├── price.py              # Price history orchestration
 │   │   └── __init__.py
-│   ├── schemas/               # Pydantic models (request/response, DB schemas)
-│   ├── config.py              # App configuration / settings
-│   └── main.py                # FastAPI application entry point
-├── .env                        # Environment variables (not committed)
-├── .env.example                 # Template for required environment variables
+│   ├── data/
+│   │   ├── cache/                # Redis cache logic
+│   │   ├── metrics/              # Finnhub client (fundamental data)
+│   │   ├── price/                # Twelve Data client (historical prices)
+│   │   ├── tickers/              # S&P 500 ticker list fetcher
+│   │   ├── models/               # SQLAlchemy models
+│   │   ├── score_history/        # Score history DB access
+│   │   ├── database.py           # SQLAlchemy engine and session
+│   │   ├── fundamental_analyzer.sql  # Database schema
+│   │   └── __init__.py
+│   ├── schemas/                   # Pydantic models (request/response)
+│   ├── scripts/
+│   │   └── refresh_sp500_cache.py # CLI script to refresh S&P 500 bounds
+│   ├── config.py                  # App configuration / settings
+│   └── main.py                    # FastAPI application entry point
+├── .env                            # Environment variables (not committed)
+├── .env.example                    # Template for required environment variables
 ├── .gitignore
 ├── README.md
 └── requirements.txt
 ```
 
-## Planned endpoints
+## Endpoints
 
-| Method | Endpoint               | Description                                   |
-|--------|-------------------------|------------------------------------------------|
-| GET    | `/score?ticker=`        | Get the current fundamental score for a ticker |
-| GET    | `/score/history?ticker=`| Get the historical scores for a ticker         |
-| GET    | `/companies`            | List available companies                       |
+| Method | Endpoint             | Description                                      |
+|--------|----------------------|--------------------------------------------------|
+| GET    | `/score/{ticker}`    | Get the current fundamental score for a ticker   |
+| GET    | `/history/{ticker}`  | Get the historical scores for a ticker           |
+| GET    | `/price/{ticker}`    | Get the historical price data for a ticker       |
+| GET    | `/companies`         | List available companies                         |
+
+## Error handling
+
+Errors are handled centrally via exception handlers registered on the FastAPI app:
+
+| Exception              | HTTP code | Meaning                        |
+|------------------------|-----------|--------------------------------|
+| Invalid ticker format  | 400       | Ticker must be 1-5 letters     |
+| MetricFetchError       | 404       | Ticker not found on Finnhub    |
+| PriceHistoryError      | 404       | No price data for this ticker  |
+| RedisConnectionError   | 503       | Cache (Redis) unavailable      |
+| SQLAlchemyError        | 503       | Database unavailable           |
+| ValueError             | 503       | Bounds not in cache            |
+| Any other exception    | 500       | Internal server error          |
 
 ## Setup
 
@@ -91,7 +123,16 @@ Fundamental-Analyzer-Backend/
    pip install -r requirements.txt
    ```
 3. Copy `.env.example` to `.env` and fill in the required API keys and database credentials.
-4. Run the application:
+4. Make sure MySQL and Redis are running.
+5. Run the database schema:
+   ```bash
+   mysql -u root -p < app/data/fundamental_analyzer.sql
+   ```
+6. Refresh the S&P 500 percentile bounds cache (required before first use):
+   ```bash
+   python -m app.scripts.refresh_sp500_cache
+   ```
+7. Run the application:
    ```bash
    uvicorn app.main:app --reload
    ```
