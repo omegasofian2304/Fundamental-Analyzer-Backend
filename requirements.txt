@@ -1,10 +1,8 @@
 fastapi
 uvicorn[standard]
-sqlmodel
-pymysql
+PyMySQL
 python-dotenv
 requests
-PyMySQL
 redis
 pandas
 pydantic
