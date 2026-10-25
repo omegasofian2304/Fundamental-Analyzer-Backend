@@ -3,6 +3,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.exc import SQLAlchemyError
 from app.data.metrics.fundamental_metrics_fetcher import MetricFetchError
 from app.data.price.price_fetcher import PriceHistoryError
+from app.data.cache.redis_client import RedisConnectionError
 
 
 def register_error_handlers(app: FastAPI):
@@ -19,6 +20,10 @@ def register_error_handlers(app: FastAPI):
     @app.exception_handler(SQLAlchemyError)
     async def database_error_handler(request: Request, exc: SQLAlchemyError):
         return JSONResponse(status_code=503, content={"detail": "Database unavailable"})
+
+    @app.exception_handler(RedisConnectionError)
+    async def redis_error_handler(request: Request, exc: RedisConnectionError):
+        return JSONResponse(status_code=503, content={"detail": "Cache unavailable"})
 
     @app.exception_handler(ValueError)
     async def value_error_handler(request: Request, exc: ValueError):
