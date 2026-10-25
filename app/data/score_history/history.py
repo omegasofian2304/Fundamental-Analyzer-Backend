@@ -16,8 +16,20 @@ def read_score_history(ticker: str) -> list[ScoreHistory]:
 
 
 def save_score_history(ticker: str, score: float, label: str, calculated_date: date) -> None:
-    """Insert a new score history row. Never updates or deletes existing rows."""
+    """Insert a new score history row if none exists for this ticker + date.
+    Never updates or deletes existing rows."""
     with Session(engine) as session:
+        exists = (
+            session.query(ScoreHistory)
+            .filter(
+                ScoreHistory.company_ticker == ticker,
+                ScoreHistory.calculated_date == calculated_date,
+            )
+            .first()
+        )
+        if exists:
+            return
+
         entry = ScoreHistory(
             company_ticker=ticker,
             score=score,
