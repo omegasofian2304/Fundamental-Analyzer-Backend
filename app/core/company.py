@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 
-from app.data.company import read_all_companies
+from app.data.models.company import read_all_companies
 
 
 def get_all_companies(db: Session):
